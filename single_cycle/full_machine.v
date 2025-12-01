@@ -40,18 +40,33 @@ module mips_decode(alu_op, writeenable, itype, except, control_type,
                 `OP0_OR:  alu_op = `ALU_OR;
                 `OP0_NOR: alu_op = `ALU_NOR;
                 `OP0_XOR: alu_op = `ALU_XOR;
+
                 `OP0_JR: begin
                     control_type = 2'd3;
                 end
-                default: except = 1;
+
+                default: except = 1; //unrecognized funct for op 0
             endcase
+
         end else begin
             case (opcode)
                 `OP_LW, `OP_SW, `OP_ADDI, `OP_ADDIU, `OP_LB, `OP_LBU, `OP_SB: alu_op = `ALU_ADD;
-                `OP_BEQ, `OP_BNE: begin
-                    alu_op = `ALU_SUB;
-                    control_type = 2'd1;
+
+                // branching
+                `OP_BEQ: begin
+                    alu_op = `ALU_SUB; // rs - rt
+                    if (zero) begin
+                        control_type = 2'b01; // rs = rt so branch target
+                    end
                 end
+
+                `OP_BNE: begin
+                    alu_op = `ALU_SUB; // rs - rt
+                    if (!zero) begin
+                        control_type = 2'b1; // rs != rt so branch target
+                    end
+                end
+
                 `OP_ANDI: alu_op = `ALU_AND;
                 `OP_ORI:  alu_op = `ALU_OR;
                 `OP_XORI: alu_op = `ALU_XOR;

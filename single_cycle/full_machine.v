@@ -27,6 +27,7 @@ module mips_decode(alu_op, writeenable, itype, except, control_type,
    input  [5:0] opcode, funct;
    input 	zero;
    
+   // set alu_op, except, control_type
     always @ (*) begin
         except = 0;
         alu_op = `ALU_ADD; // default value
@@ -42,10 +43,7 @@ module mips_decode(alu_op, writeenable, itype, except, control_type,
                 `OP0_JR: begin
                     control_type = 2'd3;
                 end
-                default: begin // probably invalid op
-                    except = 1;
-                end
-
+                default: except = 1;
             endcase
         end else begin
             case (opcode)
@@ -63,16 +61,11 @@ module mips_decode(alu_op, writeenable, itype, except, control_type,
                     control_type = 2'd2;
                 end
                 `OP_LUI: alu_op = `ALU_AND; // don't care but not default
-                default: begin // probably invalid op
-                    except = 1;
-                end
-
+                default: except = 1;
             endcase
         end
     
     end
-   	// TODO: add code decode a MIPS instruction
-    //set alu_op
     
     wire r_type_write;
     assign r_type_write = (opcode == `OP_OTHER0) && (
@@ -99,8 +92,6 @@ module mips_decode(alu_op, writeenable, itype, except, control_type,
     assign itype = ( opcode >= 4 );
 
 
-    //set except 
-
     assign mem_read = loads;
     assign word_we = (opcode == `OP_SW);
     assign byte_we = (opcode == `OP_SB);
@@ -116,14 +107,13 @@ module sign_extender_16to32 (in, out);
     output [31:0] out;
 
     assign out = { {16{in[15]}} , in[15:0] };
-
-endmodule
+endmodule // sign_extender
 
 module left_shifter_two (in, out);
     input [29:0] in;
     output [31:0] out;
     assign out = {in, 2'b00};
-endmodule
+endmodule // left_shifter
 
 module adder_ALU (A, B, out);
     output [31:0] out;
@@ -131,7 +121,7 @@ module adder_ALU (A, B, out);
     input [31:0] B;
 
     assign out = A + B;
-endmodule
+endmodule // adder_ALU
 
 
 // full_machine: execute a series of MIPS instructions from an instruction cache
@@ -142,7 +132,7 @@ endmodule
 
 module full_machine(except, clk, reset);
     output 	except;
-    input        clk, reset;
+    input   clk, reset;
 
    // NOTE: The #(32) is setting the width for the modules. See parameter in module
    // definitions
@@ -150,25 +140,25 @@ module full_machine(except, clk, reset);
 
 // BEGIN Declaring Wires (sorry its a mess)
 
-    wire [31:0] 	inst;  
-    wire [31:0] 	PC, nextPC;
-    wire [4:0] r_dest;
+    wire [31:0]	inst;  
+    wire [31:0]	PC, nextPC;
+    wire [4:0]  r_dest;
     wire [31:0] rsData, rtData, rdData;
-    wire zero, negative, overflow; // flags output from main ALU, zero goes to the decoder
+    wire        zero, negative, overflow; // flags output from main ALU, zero goes to the decoder
     wire [31:0] alu_writeback_word; // ALU output after the slt mux
     wire [31:0] mem_writeback_word; // memory output after the byte_load mux
     wire [31:0] writeback_word; // writeback value either from ALU or memory
     wire [31:0] branch_offset;
     wire [31:0] data_out; // output from main data memory
-    wire [7:0] data_out_byte; // 1 byte output from main data memory
+    wire [7:0]  data_out_byte; // 1 byte output from main data memory
     wire [31:0] adder1_out, adder2_out;
 
     // decoder signals
-    wire [2:0] alu_op;
-    wire wr_enable, itype, except, mem_read, word_we,
-        byte_we, byte_load, lui, slt;
-    wire [1:0] control_type;
+    wire [2:0]  alu_op;
+    wire        wr_enable, itype, except, mem_read, word_we,
+                byte_we, byte_load, lui, slt;
 
+    wire [1:0]  control_type;
     wire [31:0] ALU_inB, sign_ext_out, out; // out is ALU out.
 
 // END declaring wires
